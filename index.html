@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <title>Cheŕmee charm</title>
+
+    <meta name="description"
+        content="เครื่องประดับแฮนด์เมดดีไซน์พิเศษจาก Cheŕmee charm เติมความน่ารักแบบลักชูรี่ให้ทุกวันของคุณ ✨">
+
+    <meta property="og:title" content="Cheŕmee charm">
+    <meta property="og:description" content="เครื่องประดับแฮนด์เมดดีไซน์พิเศษ เติมความน่ารักแบบลักชูรี่ ✨">
+    <meta property="og:image" content="https://chermeecharms.netlify.app/01.png">
+    <meta property="og:type" content="website">
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/3/turn.min.js"></script>
+</head>
+
+<body>
+
+    <div class="ui">
+        <div class="left">
+            <div class="pill">
+                หน้า <span id="cur">1</span> / <span id="tot">1</span>
+            </div>
+        </div>
+        <div class="right">
+            <a href="product.html">ออกแบบสร้อย</a>
+            <button id="zoom">ซูม</button>
+        </div>
+    </div>
+
+    <div class="stage">
+        <div id="zoomWrap" class="zoomWrap">
+            <div id="flipbook"></div>
+        </div>
+    </div>
+
+    <div class="bottom">
+        <button class="navbtn" id="prev">◀</button>
+
+        <div class="pill" style="flex:1;justify-content:center;">
+            <input id="slider" type="range" min="1" max="1" value="1">
+        </div>
+
+        <button class="navbtn" id="next">▶</button>
+    </div>
+
+    <script>
+        (function () {
+            var PAGES_DIR = "pages/";
+            var PAGES_TOTAL = 31;
+            var PAGES_PATTERN = "1 (%n).png";   // ✅ ให้ตรงกับไฟล์ 1(1).png, 1(2).png ...
+            var START_AT = 0;
+
+            var $fb = $("#flipbook");
+            var $cur = $("#cur");
+            var $tot = $("#tot");
+            var $slider = $("#slider");
+            var $zoomWrap = $("#zoomWrap");
+            var zoomed = false;
+
+            var TOTAL = 1; // ✅ จะอัปเดตหลัง buildPages()
+
+            var PAGE_RATIO = 0.707;
+
+            function calcSize() {
+                var top = 58, bottom = 58;
+                var h = Math.min(780, window.innerHeight - top - bottom - 24);
+                var w = Math.min(window.innerWidth - 24, Math.round(h * PAGE_RATIO));
+                return { w: w, h: h };
+            }
+
+            function updateUI(p) {
+                $cur.text(p);
+                $slider.val(p);
+                $("#prev").prop("disabled", p <= 1);
+                $("#next").prop("disabled", p >= TOTAL);
+            }
+
+            function safeTurn(fn) {
+                if (typeof $.fn.turn !== "function") return false;
+                try { fn(); return true; } catch (e) { return false; }
+            }
+
+            function buildPages() {
+                $fb.empty();
+                for (var i = START_AT; i < START_AT + PAGES_TOTAL; i++) {
+                    var file = PAGES_PATTERN.replace("%n", i);
+                    var src = PAGES_DIR + file;
+                    var $page = $('<div class="page"><img loading="lazy" decoding="async" src="' + src + '" alt=""></div>');
+                    $fb.append($page);
+                }
+            }
+
+            function init() {
+                if (typeof $.fn.turn !== "function") {
+                    console.error("Turn.js โหลดไม่สำเร็จ: $.fn.turn =", $.fn.turn);
+                    alert("Turn.js โหลดไม่สำเร็จ (เช็ค Network ว่า turn.min.js status 200 ไหม)");
+                    return;
+                }
+
+                try { $fb.turn("destroy"); } catch (e) { }
+
+                // ✅ สร้างหน้าใหม่ทุกครั้งก่อน init turn.js
+                buildPages();
+                TOTAL = PAGES_TOTAL;
+
+                // ✅ อัปเดต UI/slider หลังสร้างหน้า
+                $tot.text(TOTAL);
+                $slider.attr("max", TOTAL).val(1);
+
+                var s = calcSize();
+                $fb.css({ width: s.w, height: s.h });
+
+                var isMobile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
+                $fb.turn({
+                    width: s.w,
+                    height: s.h,
+                    display: "single",
+                    autoCenter: true,
+                    gradients: !isMobile,            // ✅ มือถือปิด gradients จะลื่นขึ้น
+                    acceleration: true,              // ✅ ช่วย GPU
+                    duration: isMobile ? 420 : 600   // ✅ มือถือเร็วขึ้น
+                });
+
+                $fb.turn("page", 1);
+                updateUI(1);
+            }
+
+            $("#prev").on("click", function () {
+                safeTurn(function () { $fb.turn("previous"); });
+            });
+
+            $("#next").on("click", function () {
+                safeTurn(function () { $fb.turn("next"); });
+            });
+
+            $slider.on("input change", function () {
+                var p = parseInt(this.value, 10) || 1;
+                safeTurn(function () { $fb.turn("page", p); });
+                updateUI(p);
+            });
+
+            $("#zoom").on("click", function () {
+                zoomed = !zoomed;
+                $zoomWrap.css("transform", zoomed ? "scale(1.2)" : "scale(1)");
+                $("#zoom").text(zoomed ? "ย่อ" : "ซูม");
+            });
+
+            $fb.on("turned", function (e, page) {
+                updateUI(page);
+            });
+
+            window.addEventListener("resize", function () {
+                clearTimeout(window.__r);
+                window.__r = setTimeout(init, 120);
+            });
+
+            // ✅ Swipe บนมือถือ (ลื่นขึ้น)
+            (function bindSwipe() {
+                var sx = 0, sy = 0;
+
+                $fb.on("touchstart", function (e) {
+                    var t = e.originalEvent.touches && e.originalEvent.touches[0];
+                    if (!t) return;
+                    sx = t.clientX;
+                    sy = t.clientY;
+                });
+
+                $fb.on("touchend", function (e) {
+                    var t = e.originalEvent.changedTouches && e.originalEvent.changedTouches[0];
+                    if (!t) return;
+
+                    var dx = t.clientX - sx;
+                    var dy = t.clientY - sy;
+
+                    if (Math.abs(dx) > 35 && Math.abs(dy) < 40) {
+                        if (dx < 0) safeTurn(function () { $fb.turn("next"); });
+                        else safeTurn(function () { $fb.turn("previous"); });
+                    }
+                });
+            })();
+
+            init();
+        })();
+    </script>
+
+</body>
+
+</html>

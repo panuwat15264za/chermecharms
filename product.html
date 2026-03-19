@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+    <title>Cheŕmee charm | ออกแบบสร้อย</title>
+    <link rel="stylesheet" href="product.css" />
+</head>
+
+<body class="productPage">
+
+    <nav class="topnav">
+        <a class="brand" href="index.html">Cheŕmee charm</a>
+        <div class="links">
+            <a href="index.html">ชาร์ม</a>
+            <a class="active" href="product.html">ออกแบบ</a>
+        </div>
+    </nav>
+
+    <div class="productWrap">
+        <div class="productTop">
+
+            <div class="productActions">
+                <button id="btnCenter" class="soft">จัดเรียงกลาง</button>
+                <button id="btnClear" class="soft">ล้างทั้งหมด</button>
+                <button id="btnSave">บันทึกรูป</button>
+            </div>
+        </div>
+
+        <div id="board" class="board">
+            <div class="boardHint">
+                ลากชาร์มมาวางที่นี่ ✨
+            </div>
+
+            <div id="baseLayer" class="baseLayer"></div>
+
+            <div class="neckline" aria-hidden="true"></div>
+        </div>
+
+        <div class="pickerPanel">
+            <div class="pickerTabs">
+                <button class="pickerTab active" data-panel="charms">ชาร์ม <span id="charmCount" class="countBadge"></span></button>
+                <button class="pickerTab" data-panel="bases">นาฬิกา</button>
+            </div>
+        
+            <section id="basePanel" class="pickerSection">
+                <div class="sectionHead">
+                    <div>
+                        <h3>เลือกนาฬิกา</h3>
+                    </div>
+                </div>
+                <div id="baseList" class="baseGrid"></div>
+            </section>
+        
+            <section id="charmPanel" class="pickerSection active">
+                <div class="sectionHead">
+                    <div>
+                        <h3>เลือกชาร์ม</h3>
+                    </div>
+                </div>
+        
+                <div id="trayCategories" class="trayCategories"></div>
+                <div id="trayList" class="trayGrid"></div>
+            </section>
+        </div>
+    </div>
+
+    <div id="transformUI" class="transformUI hidden">
+        <button data-act="rotate">⟳</button>
+        <button data-act="scaleDown">−</button>
+        <button data-act="scaleUp">＋</button>
+    </div>
+
+    <script>
+        (function () {
+            const board = document.getElementById('board');
+            const tray = document.getElementById('trayList');
+            const trayCategories = document.getElementById('trayCategories');
+            const baseLayer = document.getElementById('baseLayer');
+            const baseList = document.getElementById('baseList');
+
+            let BASES = [];
+            let selectedBase = null;
+            let selectedBasePrice = 0;
+
+            let CHARM_ITEMS = [];
+            let activeCharmCategory = 'all';
+
+            const CHARM_CATEGORY_ORDER = [
+                'All',
+                'A-Z',
+                'dog charm',
+                'ชาร์มติ้ง',
+                'ชาร์มติ้งคู่',
+                'ชาร์มติ้งทอง',
+                'ชาร์มเปล่า',
+                'ชาร์มยี่ห้อรถ',
+                'ชาร์มสีทอง',
+                'เดือนเกิด'
+            ];
+
+            function getCharmCategory(it) {
+                return String(it.category || '').trim();
+            }
+
+            function getCharmShortName(it) {
+                if (it.name && String(it.name).trim()) return it.name.trim();
+
+                const file = String(it.file || '').trim();
+                return file.replace(/\.[^.]+$/, '');
+            }
+
+            function getBaseName(b, index) {
+                if (b.name && String(b.name).trim()) return b.name.trim();
+                return `Style ${index + 1}`;
+            }
+
+            function renderCharmCategories(items) {
+                if (!trayCategories) return;
+
+                const usedCategories = CHARM_CATEGORY_ORDER.filter(cat =>
+                    items.some(it => getCharmCategory(it) === cat)
+                );
+
+                trayCategories.innerHTML = '';
+
+                const allBtn = document.createElement('button');
+                allBtn.type = 'button';
+                allBtn.className = `catChip ${activeCharmCategory === 'all' ? 'active' : ''}`;
+                allBtn.textContent = 'ทั้งหมด';
+                allBtn.addEventListener('click', () => {
+                    activeCharmCategory = 'all';
+                    renderCharmCategories(CHARM_ITEMS);
+                    renderTrayItems();
+                });
+                trayCategories.appendChild(allBtn);
+
+                usedCategories.forEach((label) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = `catChip ${activeCharmCategory === label ? 'active' : ''}`;
+                    btn.textContent = label;
+
+                    btn.addEventListener('click', () => {
+                        activeCharmCategory = label;
+                        renderCharmCategories(CHARM_ITEMS);
+                        renderTrayItems();
+                    });
+
+                    trayCategories.appendChild(btn);
+                });
+            }
+
+            function renderTrayItems() {
+                tray.innerHTML = '';
+
+                let items = [...CHARM_ITEMS];
+                if (activeCharmCategory !== 'all') {
+                    items = items.filter(it => getCharmCategory(it) === activeCharmCategory);
+                }
+
+                items.forEach((it) => {
+                    const path = (it.path || '');
+                    const src = path + it.file;
+                    const price = Number(it.price || 0);
+                    const label = getCharmShortName(it);
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'trayItem';
+                    btn.dataset.src = src;
+                    btn.dataset.price = String(price);
+                    btn.dataset.name = label;
+
+                    btn.innerHTML = `
+            <img class="charm" draggable="false" loading="lazy" src="${src}" alt="${label}">
+            <div class="trayMeta">
+                <div class="trayName">${label}</div>
+                <div class="tagPrice">${formatMoney(price)} ฿</div>
+            </div>
+        `;
+
+                    btn.addEventListener('click', () => {
+                        const br = board.getBoundingClientRect();
+                        const x = br.width / 2;
+                        const y = br.height / 2;
+                        addCharmPiece(src, x, y, price);
+                    });
+
+                    tray.appendChild(btn);
+                });
+            }
+
+            const isTouchLike = () => window.matchMedia('(pointer: coarse)').matches;
+
+            const totalPriceEl = document.getElementById('totalPrice');
+            const totalCountEl = document.getElementById('totalCount');
+
+            function formatMoney(n) {
+                return (Number(n) || 0).toLocaleString('th-TH');
+            }
+
+            function updateTotals() {
+                const pieces = [...baseLayer.querySelectorAll('.piece')];
+                const charmTotal = pieces.reduce((sum, p) => sum + (Number(p._price) || 0), 0);
+
+                const total = charmTotal + (Number(selectedBasePrice) || 0);
+
+                if (totalPriceEl) totalPriceEl.textContent = formatMoney(total);
+                if (totalCountEl) totalCountEl.textContent = pieces.length;
+            }
+
+            let activeEl = null;
+            const ui = document.getElementById('transformUI');
+
+            function showTransformUI(el) {
+                activeEl = el;
+                const r = el.getBoundingClientRect();
+                const br = board.getBoundingClientRect();
+
+                ui.style.left = (r.left - br.left + r.width / 2 - 60) + 'px';
+                ui.style.top = (r.top - br.top - 46) + 'px';
+                ui.classList.remove('hidden');
+            }
+
+            function hideTransformUI() {
+                activeEl = null;
+                ui.classList.add('hidden');
+            }
+
+            ui.addEventListener('click', (e) => {
+                if (!activeEl) return;
+                const act = e.target.dataset.act;
+                if (!act) return;
+
+                activeEl._transform = activeEl._transform || { scale: 1, rotate: 0 };
+
+                if (act === 'rotate') activeEl._transform.rotate += 15;
+                if (act === 'scaleUp') activeEl._transform.scale = Math.min(activeEl._transform.scale + 0.1, 3);
+                if (act === 'scaleDown') activeEl._transform.scale = Math.max(activeEl._transform.scale - 0.1, 0.4);
+
+                activeEl.style.transform =
+                    `rotate(${activeEl._transform.rotate}deg) scale(${activeEl._transform.scale})`;
+            });
+
+
+            function getBoardXY(clientX, clientY) {
+                const rect = board.getBoundingClientRect();
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top,
+                    rect
+                };
+            }
+
+            let scrollYBeforeLock = 0;
+            function lockScroll() {
+                scrollYBeforeLock = window.scrollY || 0;
+                document.documentElement.classList.add('lockScroll');
+                document.body.classList.add('lockScroll');
+                document.body.style.top = `-${scrollYBeforeLock}px`;
+            }
+
+            function unlockScroll() {
+                document.documentElement.classList.remove('lockScroll');
+                document.body.classList.remove('lockScroll');
+
+                const top = document.body.style.top;
+                document.body.style.top = '';
+                const y = top ? -parseInt(top, 10) : scrollYBeforeLock;
+                window.scrollTo(0, y);
+            }
+
+            async function loadBaseFromJson() {
+                try {
+                    const res = await fetch('item.json', { cache: 'no-store' });
+                    if (!res.ok) throw new Error('โหลด item.json ไม่สำเร็จ: ' + res.status);
+
+                    const data = await res.json();
+                    const basePath = data.basePath || '';
+                    const items = Array.isArray(data.items) ? data.items : [];
+
+                    BASES = items
+                        .filter(it =>
+                            String(it.category || '').trim() === 'หัวนาฬิกา' ||
+                            (it.path && String(it.path).toLowerCase().includes('bases')) ||
+                            String(it.file || '').toLowerCase().startsWith('main')
+                        )
+                        .map((it, i) => {
+                            const path = (it.path || basePath || '');
+                            return {
+                                name: (it.name && String(it.name).trim()) ? it.name : `Style ${i + 1}`,
+                                src: path + it.file,
+                                price: Number(it.price || 0),
+                            };
+                        });
+
+                    renderBaseList();
+                } catch (err) {
+                    console.error(err);
+                    baseList.innerHTML = `<div style="color:rgba(255,255,255,.75);padding:6px 2px">
+      ไม่พบ item.json หรือโหลดไม่ได้ — กรุณาเช็คว่า item.json อยู่ข้างๆ product.html
+    </div>`;
+                    BASES = [];
+                }
+            }
+
+            function renderBaseList() {
+                baseList.innerHTML = "";
+
+                BASES.forEach((b, idx) => {
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "baseItem";
+                    btn.innerHTML = `
+            <img src="${b.src}" alt="${getBaseName(b, idx)}">
+            <div class="baseMeta">
+                <div class="baseName">${getBaseName(b, idx)}</div>
+                <div class="basePrice">${formatMoney(b.price)} ฿</div>
+            </div>
+        `;
+                    btn.addEventListener("click", () => setBase(idx));
+                    baseList.appendChild(btn);
+                });
+            }
+
+            function setBase(index) {
+                selectedBase = BASES[index];
+                selectedBasePrice = Number(selectedBase?.price || 0);
+
+                [...baseList.querySelectorAll(".baseItem")].forEach((el, i) => {
+                    el.classList.toggle("active", i === index);
+                });
+
+                baseLayer.querySelectorAll('.basePiece').forEach(n => n.remove());
+
+                if (!selectedBase) {
+                    selectedBasePrice = 0;
+                    updateTotals();
+                    return;
+                }
+
+                const basePiece = document.createElement("div");
+                basePiece.className = "basePiece";
+
+                const br = board.getBoundingClientRect();
+                basePiece.style.left = (br.width / 2 - 150) + "px";
+                basePiece.style.top = (br.height / 2 - 80) + "px";
+
+                const img = document.createElement("img");
+                img.src = selectedBase.src;
+                img.alt = selectedBase.name;
+                img.draggable = false;
+
+                basePiece.appendChild(img);
+                baseLayer.appendChild(basePiece);
+
+                enablePinchRotate(basePiece, board);
+                basePiece.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    showTransformUI(basePiece);
+                });
+
+                updateTotals();
+            }
+
+            async function loadTrayFromJson() {
+                try {
+                    const res = await fetch('item.json', { cache: 'no-store' });
+                    if (!res.ok) throw new Error('โหลด item.json ไม่สำเร็จ: ' + res.status);
+
+                    const data = await res.json();
+                    const basePath = data.basePath || '';
+                    const items = Array.isArray(data.items) ? data.items : [];
+
+                    const charmItems = items
+                        .filter(it => String(it.category || '').trim() !== 'หัวนาฬิกา')
+                        .filter(it => {
+                            const p = String(it.path || '').toLowerCase();
+                            const f = String(it.file || '').toLowerCase();
+                            const isBase = p.includes('bases') || f.startsWith('main');
+                            return !isBase;
+                        })
+                        .map(it => ({
+                            ...it,
+                            path: (it.path || basePath || '')
+                        }));
+
+                    CHARM_ITEMS = [...charmItems];
+                    activeCharmCategory = 'all';
+
+                    const charmCountEl = document.getElementById('charmCount');
+                    if (charmCountEl) charmCountEl.textContent = `${CHARM_ITEMS.length}`;
+
+                    renderCharmCategories(CHARM_ITEMS);
+                    renderTrayItems();
+
+                } catch (err) {
+                    console.error(err);
+                    tray.innerHTML = `<div style="color:#8b4513;padding:10px">ไม่พบ item.json หรือโหลดไม่ได้</div>`;
+                    if (trayCategories) trayCategories.innerHTML = '';
+
+                    const charmCountEl = document.getElementById('charmCount');
+                    if (charmCountEl) charmCountEl.textContent = '';
+                }
+            }
+
+            board.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                board.classList.add('dragOver');
+                e.dataTransfer.dropEffect = 'copy';
+            });
+
+            board.addEventListener('dragleave', () => board.classList.remove('dragOver'));
+
+            board.addEventListener('drop', (e) => {
+                e.preventDefault();
+                board.classList.remove('dragOver');
+
+                const src = e.dataTransfer.getData('text/plain');
+                if (!src) return;
+
+                const price = Number(e.dataTransfer.getData('application/x-charm-price') || 0);
+
+                const { x, y } = getBoardXY(e.clientX, e.clientY);
+                addCharmPiece(src, x, y, price);
+            });
+
+            board.addEventListener('pointerdown', () => {
+                hideTransformUI();
+            });
+
+            let ghost = null;
+            let draggingSrc = null;
+            let draggingPrice = 0;
+            let dragging = false;
+
+            function moveGhost(x, y) {
+                if (!ghost) return;
+                ghost.style.left = (x - 26) + 'px';
+                ghost.style.top = (y - 26) + 'px';
+
+                const br = board.getBoundingClientRect();
+                const inside = x >= br.left && x <= br.right && y >= br.top && y <= br.bottom;
+                board.classList.toggle('dragOver', inside);
+            }
+
+            function finishMobileDrop(clientX, clientY) {
+                const br = board.getBoundingClientRect();
+                const inside = clientX >= br.left && clientX <= br.right && clientY >= br.top && clientY <= br.bottom;
+
+                if (inside && draggingSrc) {
+                    const { x, y } = getBoardXY(clientX, clientY);
+                    addCharmPiece(draggingSrc, x, y, draggingPrice);
+                }
+                cleanupMobileDrag();
+            }
+
+            function cleanupMobileDrag() {
+                dragging = false;
+                draggingSrc = null;
+                board.classList.remove('dragOver');
+                if (ghost) ghost.remove();
+                ghost = null;
+
+                window.removeEventListener('pointermove', onMobileMove, { passive: false });
+                window.removeEventListener('pointerup', onMobileUp, { passive: false });
+                window.removeEventListener('pointercancel', onMobileCancel, { passive: false });
+
+                unlockScroll();
+            }
+
+            function onMobileMove(e) {
+                if (!dragging) return;
+                e.preventDefault();
+                moveGhost(e.clientX, e.clientY);
+            }
+
+            function onMobileUp(e) {
+                if (!dragging) return;
+                e.preventDefault();
+                finishMobileDrop(e.clientX, e.clientY);
+            }
+
+            function onMobileCancel(e) {
+                if (!dragging) return;
+                e.preventDefault();
+                cleanupMobileDrag();
+            }
+
+            function addCharmPiece(src, x, y, price = 0) {
+                const hint = board.querySelector('.boardHint');
+                if (hint) hint.style.display = 'none';
+
+                const piece = document.createElement('div');
+                piece.className = 'piece';
+                piece.style.left = (x - 28) + 'px';
+                piece.style.top = (y - 28) + 'px';
+
+                piece._price = Number(price || 0);
+
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = 'charm piece';
+                img.draggable = false;
+
+                piece.appendChild(img);
+                baseLayer.appendChild(piece);
+
+                enablePinchRotate(piece, board);
+
+                piece.addEventListener('dblclick', () => removePiece(piece));
+                addLongPressToRemove(piece);
+
+                piece.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    showTransformUI(piece);
+                });
+
+                updateTotals();
+            }
+
+            function removePiece(piece) {
+                piece.remove();
+                if (!board.querySelector('.piece')) {
+                    const hint2 = board.querySelector('.boardHint');
+                    if (hint2) hint2.style.display = '';
+                }
+                updateTotals();
+            }
+
+            function addLongPressToRemove(el) {
+                let t = null;
+                el.addEventListener('pointerdown', () => {
+                    if (!isTouchLike()) return;
+                    t = setTimeout(() => {
+                        removePiece(el);
+                    }, 600);
+                }, { passive: true });
+
+                el.addEventListener('pointerup', () => { if (t) clearTimeout(t); t = null; }, { passive: true });
+                el.addEventListener('pointercancel', () => { if (t) clearTimeout(t); t = null; }, { passive: true });
+                el.addEventListener('pointermove', () => { if (t) clearTimeout(t); t = null; }, { passive: true });
+            }
+
+            function enableDragInsideBoard(piece, { isBase = false } = {}) {
+                let dragging = false;
+                let offsetX = 0, offsetY = 0;
+
+                piece.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+
+                    if (isTouchLike()) lockScroll();
+
+                    dragging = true;
+                    piece.setPointerCapture(e.pointerId);
+                    piece.classList.add('active');
+
+                    const pr = piece.getBoundingClientRect();
+                    offsetX = e.clientX - pr.left;
+                    offsetY = e.clientY - pr.top;
+
+                    if (isBase) piece.style.zIndex = 5;
+                }, { passive: false });
+
+                piece.addEventListener('pointermove', (e) => {
+                    if (!dragging) return;
+                    e.preventDefault();
+
+                    const br = board.getBoundingClientRect();
+                    let nx = e.clientX - br.left - offsetX;
+                    let ny = e.clientY - br.top - offsetY;
+
+                    const w = piece.offsetWidth;
+                    const h = piece.offsetHeight;
+
+                    nx = Math.max(0, Math.min(nx, br.width - w));
+                    ny = Math.max(0, Math.min(ny, br.height - h));
+
+                    piece.style.left = nx + 'px';
+                    piece.style.top = ny + 'px';
+                    piece.style.transform = '';
+                }, { passive: false });
+
+                piece.addEventListener('pointerup', () => {
+                    dragging = false;
+                    piece.classList.remove('active');
+                    if (isTouchLike()) unlockScroll();
+                });
+
+                piece.addEventListener('pointercancel', () => {
+                    dragging = false;
+                    piece.classList.remove('active');
+                    if (isTouchLike()) unlockScroll();
+                });
+            }
+
+            function enablePinchRotate(el, container) {
+                container = container || board;
+
+                el._transform = el._transform || { scale: 1, rotate: 0 };
+                let drag1 = false;
+                let offsetX = 0, offsetY = 0;
+
+                let pinching = false;
+                let startDist = 0;
+                let startAngle = 0;
+                let startScale = 1;
+                let startRotate = 0;
+
+                const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+                function applyTransform() {
+                    el.style.transform = `rotate(${el._transform.rotate}deg) scale(${el._transform.scale})`;
+                }
+
+                function getLocalXY(clientX, clientY) {
+                    const cr = container.getBoundingClientRect();
+                    return { x: clientX - cr.left, y: clientY - cr.top, cr };
+                }
+
+                el.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    el.setPointerCapture(e.pointerId);
+
+                    if (pinching) return;
+
+                    drag1 = true;
+                    const r = el.getBoundingClientRect();
+                    offsetX = e.clientX - r.left;
+                    offsetY = e.clientY - r.top;
+                }, { passive: false });
+
+                el.addEventListener('pointermove', (e) => {
+                    if (!drag1 || pinching) return;
+                    e.preventDefault();
+
+                    const { x, y, cr } = getLocalXY(e.clientX, e.clientY);
+                    let nx = x - offsetX;
+                    let ny = y - offsetY;
+
+                    const w = el.offsetWidth;
+                    const h = el.offsetHeight;
+
+                    const overflow = el.classList.contains('basePiece') ? 0.45 : 0;
+
+                    const minX = -w * overflow;
+                    const maxX = cr.width - w * (1 - overflow);
+                    const minY = -h * overflow;
+                    const maxY = cr.height - h * (1 - overflow);
+
+                    nx = clamp(nx, minX, maxX);
+                    ny = clamp(ny, minY, maxY);
+
+                    el.style.left = nx + "px";
+                    el.style.top = ny + "px";
+                }, { passive: false });
+
+                el.addEventListener('pointerup', () => { drag1 = false; }, { passive: true });
+                el.addEventListener('pointercancel', () => { drag1 = false; }, { passive: true });
+
+                el.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 2) {
+                        e.preventDefault();
+                        pinching = true;
+                        drag1 = false;
+
+                        const t1 = e.touches[0];
+                        const t2 = e.touches[1];
+
+                        startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                        startAngle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+                        startScale = el._transform.scale;
+                        startRotate = el._transform.rotate;
+                    }
+                }, { passive: false });
+
+                el.addEventListener('touchmove', (e) => {
+                    if (!pinching || e.touches.length !== 2) return;
+                    e.preventDefault();
+
+                    const t1 = e.touches[0];
+                    const t2 = e.touches[1];
+
+                    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                    const angle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+
+                    let scale = startScale * (dist / (startDist || dist));
+                    scale = clamp(scale, 0.4, 3);
+
+                    const rotate = startRotate + (angle - startAngle) * (180 / Math.PI);
+
+                    el._transform.scale = scale;
+                    el._transform.rotate = rotate;
+                    applyTransform();
+                }, { passive: false });
+
+                function endTouch(e) {
+                    if (e.touches.length < 2) pinching = false;
+                }
+                el.addEventListener('touchend', endTouch, { passive: true });
+                el.addEventListener('touchcancel', () => { pinching = false; }, { passive: true });
+
+                applyTransform();
+            }
+
+            document.getElementById('btnClear').addEventListener('click', () => {
+                board.querySelectorAll('.piece').forEach(n => n.remove());
+                baseLayer.innerHTML = '';
+
+                selectedBase = null;
+                selectedBasePrice = 0;
+
+                [...baseList.querySelectorAll(".baseItem")].forEach(el => el.classList.remove("active"));
+                const hint = board.querySelector('.boardHint');
+                if (hint) hint.style.display = '';
+
+                document.querySelectorAll('.pickerTab').forEach(b => {
+                    b.classList.toggle('active', b.dataset.panel === 'bases');
+                });
+                document.getElementById('basePanel').classList.add('active');
+                document.getElementById('charmPanel').classList.remove('active');
+
+                updateTotals();
+            });
+
+            document.getElementById('btnCenter').addEventListener('click', () => {
+                const pieces = Array.from(board.querySelectorAll('.piece'));
+                if (!pieces.length) return;
+
+                const br = board.getBoundingClientRect();
+                const midY = br.height * 0.52;
+                const gap = 10;
+
+                const totalW = pieces.reduce((sum, p) => sum + p.offsetWidth, 0) + gap * (pieces.length - 1);
+                let startX = (br.width - totalW) / 2;
+                startX = Math.max(10, startX);
+
+                pieces.forEach((p) => {
+                    p.style.left = startX + 'px';
+                    p.style.top = (midY - p.offsetHeight / 2) + 'px';
+                    startX += p.offsetWidth + gap;
+                });
+            });
+
+            document.getElementById('btnSave').addEventListener('click', exportBaseLayerPNG);
+
+            async function exportBaseLayerPNG() {
+                const items = [...baseLayer.querySelectorAll('.basePiece, .piece')];
+
+                const boardRect = board.getBoundingClientRect();
+                const w = Math.round(boardRect.width);
+                const h = Math.round(boardRect.height);
+
+                const dpr = window.devicePixelRatio || 1;
+                const canvas = document.createElement('canvas');
+                canvas.width = w * dpr;
+                canvas.height = h * dpr;
+
+                const ctx = canvas.getContext('2d');
+                ctx.scale(dpr, dpr);
+
+                if (items.length) {
+                    const imgs = items.map(el => el.querySelector('img')).filter(Boolean);
+                    await Promise.all(imgs.map(ensureImageLoaded));
+
+                    items.sort((a, b) => {
+                        const za = parseInt(a.style.zIndex || '0', 10);
+                        const zb = parseInt(b.style.zIndex || '0', 10);
+                        return za - zb;
+                    });
+
+                    for (const el of items) {
+                        const img = el.querySelector('img');
+                        if (!img) continue;
+
+                        const x = parseFloat(el.style.left || '0');
+                        const y = parseFloat(el.style.top || '0');
+
+                        const r = el.getBoundingClientRect();
+                        const drawW = r.width;
+                        const drawH = r.height;
+
+                        ctx.save();
+                        ctx.translate(x + drawW / 2, y + drawH / 2);
+                        const t = el._transform || { scale: 1, rotate: 0 };
+                        ctx.rotate(t.rotate * Math.PI / 180);
+                        ctx.scale(t.scale, t.scale);
+                        ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+                        ctx.restore();
+                    }
+                }
+
+                canvas.toBlob((blob) => {
+                    if (!blob) return;
+                    downloadBlob(blob, `baseLayer-${Date.now()}.png`);
+                }, 'image/png');
+            }
+
+            function ensureImageLoaded(img) {
+                if (img.complete && img.naturalWidth) return Promise.resolve();
+                return new Promise(res => {
+                    img.addEventListener('load', res, { once: true });
+                    img.addEventListener('error', res, { once: true });
+                });
+            }
+
+            function downloadBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            }
+
+            (function enableTrayDragScroll() {
+                let isDown = false, startX = 0, startScroll = 0;
+
+                tray.addEventListener('pointerdown', (e) => {
+                    if (e.target.closest('.trayItem')) return;
+                    if (isTouchLike()) return;
+                    isDown = true;
+                    tray.setPointerCapture(e.pointerId);
+                    startX = e.clientX;
+                    startScroll = tray.scrollLeft;
+                    tray.classList.add('dragScroll');
+                });
+
+                tray.addEventListener('pointermove', (e) => {
+                    if (!isDown) return;
+                    const dx = e.clientX - startX;
+                    tray.scrollLeft = startScroll - dx;
+                });
+
+                function end() {
+                    isDown = false;
+                    tray.classList.remove('dragScroll');
+                }
+                tray.addEventListener('pointerup', end);
+                tray.addEventListener('pointercancel', end);
+            })();
+
+            document.querySelectorAll('.pickerTab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const panel = btn.dataset.panel;
+
+                    document.querySelectorAll('.pickerTab').forEach(b => {
+                        b.classList.toggle('active', b === btn);
+                    });
+
+                    document.getElementById('basePanel').classList.toggle('active', panel === 'bases');
+                    document.getElementById('charmPanel').classList.toggle('active', panel === 'charms');
+                });
+            });
+
+            updateTotals();
+            loadTrayFromJson();
+            loadBaseFromJson();
+        })();
+    </script>
+</body>
+
+</html>

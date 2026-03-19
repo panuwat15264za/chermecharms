@@ -1,0 +1,214 @@
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --bg: #faf0e6;
+    --panel: rgba(255, 255, 255, .8);
+    --btn: #ffe4e1;
+    --btnText: #8b4513;
+    --shadow: 0 8px 32px rgba(0, 0, 0, .1);
+    --radius: 14px;
+    --radiusBtn: 12px;
+
+    --topPad: 58px;
+    --bottomPad: 58px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    font-family: 'Prompt', system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow: hidden;
+    color: #333;
+}
+
+img {
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.ui {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 10px;
+    z-index: 10;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0));
+    border-bottom: 1px solid rgba(0, 0, 0, .1);
+}
+
+.left,
+.right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.right a {
+    color: #8b4513;
+    text-decoration: none;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .8);
+    border: 1px solid rgba(0, 0, 0, .1);
+    transition: background .15s ease, color .15s ease;
+}
+
+.right a:hover {
+    background: #ffe4e1;
+}
+
+.pill {
+    color: #333;
+    background: var(--panel);
+    padding: 8px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(0, 0, 0, .1);
+}
+
+button {
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--btn);
+    color: var(--btnText);
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .1);
+    transition: transform .08s ease, opacity .15s ease;
+}
+
+button:active {
+    transform: scale(.98);
+}
+
+.stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--topPad) 32px var(--bottomPad);
+}
+
+.zoomWrap {
+    transform-origin: center top;
+    will-change: transform;
+}
+
+#flipbook {
+    background: #fff;
+    box-shadow: var(--shadow);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.page {
+    background: #fff;
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.page img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.bottom {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 10px;
+    z-index: 10;
+    background: linear-gradient(to top, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0));
+    border-top: 1px solid rgba(0, 0, 0, .1);
+}
+
+.navbtn {
+    width: 48px;
+    height: 44px;
+    border-radius: var(--radiusBtn);
+    display: grid;
+    place-items: center;
+    padding: 0;
+}
+
+input[type="range"] {
+    width: min(55vw, 420px);
+    accent-color: #8b4513;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: rgba(139, 69, 19, .2);
+    border-radius: 999px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffe4e1;
+    border: 2px solid #8b4513;
+    box-shadow: 0 4px 12px rgba(139, 69, 19, .2);
+}
+
+#flipbook,
+.page,
+.page img {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+.page img {
+    image-rendering: auto;
+}
+
+@media (max-width:420px) {
+    button {
+        padding: 9px 10px;
+    }
+
+    .navbtn {
+        width: 44px;
+        height: 42px;
+    }
+
+    .pill {
+        font-size: 12px;
+        padding: 7px 9px;
+    }
+
+    input[type="range"] {
+        width: min(58vw, 320px);
+    }
+}
