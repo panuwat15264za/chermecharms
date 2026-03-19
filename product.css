@@ -513,10 +513,20 @@ body {
         min-height: 100dvh;
         height: 100dvh;
         padding-top: calc(var(--navH) + 8px);
-        padding-bottom: 8px;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
         display: flex;
         flex-direction: column;
         gap: 10px;
+        overflow: hidden;
+    }
+
+    /* Make the picker panel scrollable on small screens so long lists of charms don't get cut off */
+    .pickerPanel {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: env(safe-area-inset-bottom, 0);
     }
 
     .productTop {

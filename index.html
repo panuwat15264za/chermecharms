@@ -21,6 +21,25 @@
 </head>
 
 <body>
+    <div id="landingScreen" class="landingScreen">
+        <div class="landingGlow glow1"></div>
+        <div class="landingGlow glow2"></div>
+    
+        <div class="landingCard">
+            <div class="landingLogoWrap">
+                <div class="landingLogo imageLogo">
+                    <img src="logoCherme.png" alt="Cheŕmee charm logo">
+                </div>
+            </div>
+    
+            <div class="landingSub">Luxury handmade charms</div>
+            <div class="landingSparkles">✦ ✧ ✦</div>
+    
+            <div class="landingLoader">
+                <span></span>
+            </div>
+        </div>
+    </div>
 
     <div class="ui">
         <div class="left">
@@ -67,6 +86,21 @@
             var TOTAL = 1; // ✅ จะอัปเดตหลัง buildPages()
 
             var PAGE_RATIO = 0.707;
+
+            var landingEl = document.getElementById("landingScreen");
+            document.body.classList.add("landingActive");
+
+            function closeLanding() {
+                if (!landingEl) return;
+                landingEl.classList.add("hide");
+                document.body.classList.remove("landingActive");
+
+                setTimeout(function () {
+                    if (landingEl && landingEl.parentNode) {
+                        landingEl.parentNode.removeChild(landingEl);
+                    }
+                }, 950);
+            }
 
             function calcSize() {
                 var top = 58, bottom = 58;
@@ -187,7 +221,10 @@
                 });
             })();
 
-            init();
+            setTimeout(function () {
+                init();
+                closeLanding();
+            }, 5000);
         })();
     </script>
 
